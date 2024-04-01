@@ -127,8 +127,6 @@ class Ball:
             self.x_speed, self.y_speed = BALL_SPEED, BALL_SPEED
             sleep(1)
 
-
-
         # Set new positions
         self.xpos = round(new_xpos, 2)
         self.ypos = round(new_ypos, 2)
@@ -162,9 +160,8 @@ class BrickManager:
     def __init__(self):
         self.brick_width = 40
         self.brick_height = 10
-        self.gap_x = 10
-        self.gap_y = None
-
+        self.gap_x = 20
+        self.gap_y = 20
         self.field_bounds_x = 100
         self.field_bounds_y = 50 
         self.field_bounds_height = 600 
@@ -175,20 +172,25 @@ class BrickManager:
             self.field_bounds_width, 
             self.field_bounds_height
         )
-
         self.bricks_x = round(self.field_bounds_width / (self.brick_width + self.gap_x))    # How many bricks in each row
-        self.bricks_y = None    # How many bricks in each column
+        self.bricks_y = 10    # How many bricks in each column
         self.bricks = []      # Rects of each brick to compare w/ ball position
+        self._genereate_brick_field()
         
-        self._brick_row()
 
-    def _brick_row(self):
+    def _brick_row(self, start_y):
         for i in range(0, self.bricks_x):
             space_from_edge = self.field_bounds_x
-            x = i * (self.brick_width + self.gap_x) + space_from_edge #! Will cause a gap before the first brick in the row
-            y = self.field_bounds_y
-            brick = Brick(x, y, self.brick_width, self.brick_height)
+            x = i * (self.brick_width + self.gap_x) + space_from_edge 
+            brick = Brick(x, start_y, self.brick_width, self.brick_height)
             self.bricks.append(brick)
+
+    def _genereate_brick_field(self):
+        for row in range(0, self.bricks_y):
+            start_y = row * (self.brick_height + self.gap_y) + self.field_bounds_y
+            self._brick_row(start_y)
+        
+
 
     def update(self):
         print(self.bricks_x)
