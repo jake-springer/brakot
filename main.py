@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 # -------------------------------------------------------------------
 
 # 3/12/24
@@ -8,6 +7,7 @@
 import pygame
 from rich.console import Console 
 from time import sleep
+import math
 
 # -------------------------------------------------------------------
 
@@ -49,6 +49,16 @@ WALL_HIT_MODIFIER = 1
 TOP_HIT_MODIFIER = 1
 
 # -------------------------------------------------------------------
+#  Lucas' Cringe mathematics class 101
+
+class Vector2D:
+
+    def __init__(self, x: float, y: float) -> None:
+        self.x = x
+        self.y = y
+
+
+# -------------------------------------------------------------------
 # Entities
 
 class Starship:
@@ -84,47 +94,61 @@ class Ball:
     def __init__(self):
         self.xpos = BALL_STARTX
         self.ypos = BALL_STARTY
-        self.x_speed = 2
-        self.y_speed = 2
+        self.speed = Vector2D(1, 2)
         self.width = BALL_SIZE
         self.height = BALL_SIZE
         self.color = BALL_COLOR
         self.rect = pygame.Rect(self.xpos, self.ypos, self.width, self.height)
 
     def _calculate_position(self, ship):
-        new_xpos = self.xpos + self.x_speed
-        new_ypos = self.ypos + self.y_speed
+        new_xpos = self.xpos + self.speed.x
+        new_ypos = self.ypos + self.speed.y
         right_bounds = SCREEN_WIDTH - self.width
         top_bounds = 0 
         left_bounds = 0
         # Top of screen
         if new_ypos <= 0: 
             new_ypos = 0
-            self.y_speed = abs(self.y_speed)
+            self.speed.y *= -1
         
         # Left boundary 
         if new_xpos <= left_bounds:
             new_xpos = left_bounds
-            self.x_speed = abs(self.x_speed) * WALL_HIT_MODIFIER
-            self.y_speed *= WALL_HIT_MODIFIER
+            self.speed.x *= -1
         
         # Right boundary 
         if new_xpos >= right_bounds:
             new_xpos = right_bounds
-            self.x_speed = (self.x_speed * -1) * WALL_HIT_MODIFIER
-            self.y_speed *= WALL_HIT_MODIFIER
+            self.speed.x *= -1
         
         # Ship bounce
         if self.rect.colliderect(ship.rect):
-            new_ypos = PLAYER_TOP - 10
-            self.y_speed = (self.y_speed * -1) * PLAYER_HIT_MODIFIER
-            self.x_speed *= PLAYER_HIT_MODIFIER
+            # Adjust ypos for visual bounce
+            new_ypos = PLAYER_TOP - self.height
+            
+            # Determine the new direction based on collision point
+            ball_center_x = self.xpos + self.width / 2
+            distance_from_center = ball_center_x - (ship.xpos + ship.width / 2)
+            normalized_distance = distance_from_center / (ship.width / 2)
+
+            # Maintain the total speed constant
+            desired_total_speed = math.sqrt(self.speed.x**2 + self.speed.y**2)
+            
+            # Adjust x component of speed based on where it hits the paddle
+            # Ensure that the direction change is proportional to the distance from the center
+            self.speed.x = desired_total_speed * normalized_distance * PLAYER_HIT_MODIFIER
+
+            # Calculate the y component based on the constant total speed and the new x component
+            self.speed.y = math.copysign(math.sqrt(max(desired_total_speed**2 - self.speed.x**2, 0)), -self.speed.y)
+
+
+
 
         # Bottom screen
         if new_ypos >= SCREEN_HEIGHT + BALL_SIZE:
             console.print("[red]RESET")
             new_xpos, new_ypos = BALL_STARTX, BALL_STARTY
-            self.x_speed, self.y_speed = BALL_SPEED, BALL_SPEED
+            self.speed = Vector2D(BALL_SPEED, BALL_SPEED)
             sleep(1)
 
 
@@ -133,7 +157,7 @@ class Ball:
         self.xpos = round(new_xpos, 2)
         self.ypos = round(new_ypos, 2)
         console.print(f"POSITION: X/{str(self.xpos)} Y/{str(self.ypos)}")
-        console.print(f"SPEED: X/{str(self.x_speed)} Y/{str(self.y_speed)}")
+        console.print(f"SPEED: X/{str(self.speed.x)} Y/{str(self.speed.y)}")
         
         
     def update(self, ship):
@@ -201,7 +225,7 @@ class BrickManager:
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 screen.fill(SCREEN_BG)
-font = pygame.font.Font(size=FONT_SIZE)
+font = pygame.font.Font(None, FONT_SIZE)
 clock = pygame.time.Clock()
 running = True
 frame = 0
@@ -233,7 +257,7 @@ while running:
     ball.update(ship)
     brick_field.update()
 
-    text = font.render(f'X Speed: {str(abs(round(ball.x_speed, 2)))}', False, 'white')
+    text = font.render(f'Speed: {str(abs(round(math.sqrt(ball.speed.x*ball.speed.x + ball.speed.y*ball.speed.y), 2)))}', False, 'white')
     screen.blit(text, (0,0))
 
     pygame.display.flip()
