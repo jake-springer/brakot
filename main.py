@@ -57,6 +57,9 @@ class Vector2D:
         self.x = x
         self.y = y
 
+    def multiply(self, num):
+        return Vector2D(self.x * num, self.y * num)
+
 
 # -------------------------------------------------------------------
 # Entities
@@ -123,23 +126,27 @@ class Ball:
         
         # Ship bounce
         if self.rect.colliderect(ship.rect):
-            # Adjust ypos for visual bounce
-            new_ypos = PLAYER_TOP - self.height
-            
-            # Determine the new direction based on collision point
+# Calculate the point of collision and determine the new direction
             ball_center_x = self.xpos + self.width / 2
             distance_from_center = ball_center_x - (ship.xpos + ship.width / 2)
             normalized_distance = distance_from_center / (ship.width / 2)
-
-            # Maintain the total speed constant
-            desired_total_speed = math.sqrt(self.speed.x**2 + self.speed.y**2)
             
-            # Adjust x component of speed based on where it hits the paddle
-            # Ensure that the direction change is proportional to the distance from the center
-            self.speed.x = desired_total_speed * normalized_distance * PLAYER_HIT_MODIFIER
+            # Calculate the total speed before the collision
+            total_speed_before_collision = math.sqrt(self.speed.x**2 + self.speed.y**2)
+            
+            # Adjust the direction of the ball based on the collision point
+            # This changes the x component of the speed more significantly for hits far from the center
+            angle_of_deflection = normalized_distance * math.pi / 4  # Adjust the angle range as needed
+            
+            # Calculate new speed components based on the angle of deflection
+            self.speed.x = total_speed_before_collision * math.cos(angle_of_deflection)
+            self.speed.y = -total_speed_before_collision * math.sin(angle_of_deflection)  # Negative to ensure the ball bounces upwards
+            if(self.speed.y == 0):
+                self.speed.x -= 1
+                self.speed.y += 1
 
-            # Calculate the y component based on the constant total speed and the new x component
-            self.speed.y = math.copysign(math.sqrt(max(desired_total_speed**2 - self.speed.x**2, 0)), -self.speed.y)
+            self.speed = self.speed.multiply(PLAYER_HIT_MODIFIER)
+            self.ypos += 10
 
 
 
